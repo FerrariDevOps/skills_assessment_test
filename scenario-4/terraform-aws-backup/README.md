@@ -8,7 +8,7 @@ copy, each vault locked with AWS Backup Vault Lock.
 
 ```hcl
 module "backup_policy" {
-  source = "app.terraform.io/conjura/backup/aws"
+  source = "./scenario-4/terraform-aws-backup"
   version = "0.0.0"
 
   providers = {
@@ -28,10 +28,15 @@ module "backup_policy" {
 
 ## Requirements
 
-- Three provider configurations, the source account (Prod, Frankfurt), the cross-region account (Prod, Ireland), and the cross-account destination (Backup account, Frankfurt)
-- The source and Backup accounts must belong to the same AWS Organizations organisation, cross-account copy is not possible otherwise
-- The AWS Backup service opt-in enabled for the resource types being backed up, in the source account
-- IAM permissions in each account to create KMS keys, backup vaults, an IAM role, and a vault policy
+- Three provider configurations, the source account (Prod, Frankfurt), the
+  cross-region account (Prod, Ireland), and the cross-account destination
+  (Backup account, Frankfurt)
+- The source and Backup accounts must belong to the same AWS Organizations
+  organisation, cross-account copy is not possible otherwise
+- The AWS Backup service opt-in enabled for the resource types being backed up,
+  in the source account
+- IAM permissions in each account to create KMS keys, backup vaults, an IAM
+  role, and a vault policy
 
 ## Inputs
 
@@ -79,19 +84,25 @@ This module deploys the following components:
 ### Backup plan and selection
 
 - One rule in the source account, on a configurable cron schedule
-- Two `copy_action` blocks inside that rule, one cross-region and one cross-account, each with its own retention
-- Resource selection by tag, using `condition` blocks so every tag in `selection_tags` must match (AND, not OR)
+- Two `copy_action` blocks inside that rule, one cross-region and one
+  cross-account, each with its own retention
+- Resource selection by tag, using `condition` blocks so every tag in
+  `selection_tags` must match (AND, not OR)
 
 ### Vaults and Vault Lock
 
-- A source vault in Prod, Frankfurt, encrypted with a dedicated, auto-rotating KMS key
+- A source vault in Prod, Frankfurt, encrypted with a dedicated, auto-rotating
+  KMS key
 - A DR vault in Prod, Ireland, for the cross-region copy, with its own KMS key
-- A central vault in the Backup account, Frankfurt, for the cross-account copy, with its own KMS key and a vault policy allowing `backup:CopyIntoBackupVault` from the source account
+- A central vault in the Backup account, Frankfurt, for the cross-account copy,
+  with its own KMS key and a vault policy allowing `backup:CopyIntoBackupVault`
+  from the source account
 - Vault Lock (WORM) on all three, in compliance mode by default
 
 ### IAM role
 
-- A service role assumed by AWS Backup, with the AWS managed policies for backup, restore, and the S3 variants of both
+- A service role assumed by AWS Backup, with the AWS managed policies for
+  backup, restore, and the S3 variants of both
 
 ## Points worth knowing
 
@@ -99,7 +110,3 @@ This module deploys the following components:
 - **Vault Lock runs in compliance mode.** Because `changeable_for_days` is set, the lock becomes immutable once the grace period (3 days by default) expires, nobody, including root, can delete recovery points inside the retention window or remove the lock. Set `changeable_for_days = null` to keep the lock in governance mode instead. See [AWS Backup Vault Lock](https://docs.aws.amazon.com/aws-backup/latest/devguide/vault-lock.html).
 - **Cross-account copy prerequisites.** Both accounts must belong to the same AWS Organizations organisation, and the destination vault must use a customer managed KMS key (AWS managed keys cannot be shared across accounts). For resource types without full AWS Backup management, the source KMS key must also be shared with the destination account. See [Creating backup copies across AWS accounts](https://docs.aws.amazon.com/aws-backup/latest/devguide/create-cross-account-backup.html).
 - **Locked vaults resist `terraform destroy`.** A vault with recovery points inside rejects deletion, AWS Backup returns "Backup vault cannot be deleted because it contains recovery points", so the destroy fails and the vault stays in state, managed and intact, nothing is left half-deleted. With the lock in compliance mode, not even `force_destroy` on `aws_backup_vault` gets past that inside the retention window, because deleting the recovery points themselves is what the lock denies. That is the point of the design, but keep it in mind in test environments.
-
-## Not production ready on purpose
-
-The test states the module only needs to demonstrate Terraform skills, so a few things are intentionally simplified, KMS key policies are the account defaults, there is no organisation-level backup policy, and no SNS notifications on job failures. In a real deployment those would be added, along with `aws_backup_vault_notifications` and restore testing.
