@@ -68,7 +68,7 @@ module "backup_policy" {
 | --- | --- |
 | `source_vault_arn` | The ARN of the source vault (Prod, Frankfurt) |
 | `dr_vault_arn` | The ARN of the cross-region vault (Prod, Ireland) |
-| `central_vault_arn` | The ARN of the cross-account vault (Backup account, Frankfurt) |
+| `central_vault_arn` | The ARN of the cross-account vault (Backup, Frankfurt) |
 
 ### IAM
 
@@ -106,7 +106,29 @@ This module deploys the following components:
 
 ## Points worth knowing
 
-- **Tag selection uses AND logic.** The requirement is `ToBackup=true` AND `Owner=<owner>`, so the selection uses `condition` blocks (combined with AND). `selection_tag` blocks are combined with OR and would select far more than intended. See [Assigning resources](https://docs.aws.amazon.com/aws-backup/latest/devguide/assigning-resources.html).
-- **Vault Lock runs in compliance mode.** Because `changeable_for_days` is set, the lock becomes immutable once the grace period (3 days by default) expires, nobody, including root, can delete recovery points inside the retention window or remove the lock. Set `changeable_for_days = null` to keep the lock in governance mode instead. See [AWS Backup Vault Lock](https://docs.aws.amazon.com/aws-backup/latest/devguide/vault-lock.html).
-- **Cross-account copy prerequisites.** Both accounts must belong to the same AWS Organizations organisation, and the destination vault must use a customer managed KMS key (AWS managed keys cannot be shared across accounts). For resource types without full AWS Backup management, the source KMS key must also be shared with the destination account. See [Creating backup copies across AWS accounts](https://docs.aws.amazon.com/aws-backup/latest/devguide/create-cross-account-backup.html).
-- **Locked vaults resist `terraform destroy`.** A vault with recovery points inside rejects deletion, AWS Backup returns "Backup vault cannot be deleted because it contains recovery points", so the destroy fails and the vault stays in state, managed and intact, nothing is left half-deleted. With the lock in compliance mode, not even `force_destroy` on `aws_backup_vault` gets past that inside the retention window, because deleting the recovery points themselves is what the lock denies. That is the point of the design, but keep it in mind in test environments.
+- **Tag selection uses AND logic.** The requirement is `ToBackup=true` AND
+  `Owner=<owner>`, so the selection uses `condition` blocks (combined with AND).
+  `selection_tag` blocks are combined with OR and would select far more than
+  intended. See [Assigning
+  resources](https://docs.aws.amazon.com/aws-backup/latest/devguide/assigning-resources.html).
+- **Vault Lock runs in compliance mode.** Because `changeable_for_days` is set,
+  the lock becomes immutable once the grace period (3 days by default) expires,
+  nobody, including root, can delete recovery points inside the retention window
+  or remove the lock. Set `changeable_for_days = null` to keep the lock in
+  governance mode instead. See [AWS Backup Vault
+  Lock](https://docs.aws.amazon.com/aws-backup/latest/devguide/vault-lock.html).
+- **Cross-account copy prerequisites.** Both accounts must belong to the same
+  AWS Organizations organisation, and the destination vault must use a customer
+  managed KMS key (AWS managed keys cannot be shared across accounts). For
+  resource types without full AWS Backup management, the source KMS key must
+  also be shared with the destination account. See [Creating backup copies
+  across AWS
+  accounts](https://docs.aws.amazon.com/aws-backup/latest/devguide/create-cross-account-backup.html).
+- **Locked vaults resist `terraform destroy`.** A vault with recovery points
+  inside rejects deletion, AWS Backup returns "Backup vault cannot be deleted
+  because it contains recovery points", so the destroy fails and the vault stays
+  in state, managed and intact, nothing is left half-deleted. With the lock in
+  compliance mode, not even `force_destroy` on `aws_backup_vault` gets past that
+  inside the retention window, because deleting the recovery points themselves
+  is what the lock denies. That is the point of the design, but keep it in mind
+  in test environments.
