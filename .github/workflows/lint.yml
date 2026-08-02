@@ -1,0 +1,19 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-slim
+    steps:
+    - name: Repository Checkout
+      uses: actions/checkout@v7.0.1
+    - name: Markdown Lint
+      uses: actionshub/markdownlint@v3.1.4
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v4.0.1
+      with:
+        terraform_version: "1.15.8"
+    - name: Terraform Lint
+      run: |
+        terraform fmt -check -recursive -diff
