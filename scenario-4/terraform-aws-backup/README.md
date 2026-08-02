@@ -40,18 +40,21 @@ module "backup_policy" {
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-| --- | --- | --- | --- | :---: |
-| `name` | Prefix for every resource created by the module | `string` | `"cloudfoundation"` | no |
-| `backup_schedule` | Cron expression for the backup rule | `string` | `"cron(0 2 * * ? *)"` | no |
-| `backup_retention_days` | Retention in days of recovery points in the source vault | `number` | `35` | no |
-| `start_window_minutes` | Minutes a backup job can wait before starting | `number` | `60` | no |
-| `completion_window_minutes` | Minutes a backup job has to complete after starting | `number` | `480` | no |
-| `cross_region_copy_retention_days` | Retention in days of the cross-region copy in the DR vault | `number` | `35` | no |
-| `cross_account_copy_retention_days` | Retention in days of the cross-account copy in the central vault | `number` | `90` | no |
-| `selection_tags` | Tags AWS Backup uses to dynamically discover which resources join the backup plan. Matching is exact and case-sensitive, and every tag must be present (AND logic, not OR) | `map(string)` | `{ ToBackup = "true" }` | no |
-| `vault_lock` | Vault Lock settings applied to the three vaults, `changeable_for_days` switches the lock to compliance mode once the grace period ends, set it to `null` to stay in governance mode | `object({...})` | see `variables.tf` | no |
-| `tags` | Additional tags merged into the standard tag set applied to every resource | `map(string)` | `{}` | no |
+| Name | Description | Type | Default |
+| --- | --- | --- | --- |
+| `name` | Prefix for every resource name | `string` | `"cloudfoundation"` |
+| `backup_schedule` | Backup cron schedule | `string` | `"cron(0 2 * * ? *)"` |
+| `backup_retention_days` | Source vault retention | `number` | `35` |
+| `start_window_minutes` | Minutes to start a backup job | `number` | `60` |
+| `completion_window_minutes` | Minutes to complete a job | `number` | `480` |
+| `cross_region_copy_retention_days` | DR vault retention | `number` | `35` |
+| `cross_account_copy_retention_days` | Central retention | `number` | `90` |
+| `selection_tags` | AND-match tags | `map(string)` | `{ ToBackup = "true" }` |
+| `vault_lock` | Vault Lock settings | `object({...})` | see `variables.tf` |
+| `tags` | Extra tags for every resource | `map(string)` | `{}` |
+
+All inputs are optional. See [Points worth knowing](#points-worth-knowing) for
+the `selection_tags` and `vault_lock` details.
 
 ## Outputs
 
